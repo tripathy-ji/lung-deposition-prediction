@@ -329,7 +329,7 @@
       resultSection.classList.remove("show");
 
       try {
-        const response = await fetch("https://lung-deposition-prediction.onrender.com/predict", {
+        const response = await fetch("/predict", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(formData),

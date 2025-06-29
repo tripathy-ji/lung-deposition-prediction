@@ -1,48 +1,57 @@
 from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 import numpy as np
+import pandas as pd
 import joblib
 import os
 
-# Initialize Flask app
 app = Flask(__name__, static_folder='.', static_url_path='')
 CORS(app)
 
-# Load your trained model
+# Load the trained model
 model_path = 'models/deposition_model.joblib'
 if not os.path.exists(model_path):
-    raise FileNotFoundError(f"Model file not found at '{model_path}'. Please place it inside the 'models' folder.")
+    raise FileNotFoundError(f"Model file not found at '{model_path}'.")
 model = joblib.load(model_path)
 print("Model loaded successfully.")
 
-# Serve your frontend (index.html)
 @app.route('/')
 def serve_index():
     return send_from_directory('.', 'index.html')
 
-# Prediction endpoint
 @app.route('/predict', methods=['POST'])
 def predict():
     try:
         data = request.get_json(force=True)
-        # Expect the same keys your frontend sends:
+        print(f"Received data: {data}")
+
+        # Extract input values
         br = float(data['breathingRate'])
         pdia = float(data['particleDiameter'])
         lr = data['lungRegion']
 
-        # Build features array for your model.
-        # If your model expects three columns, include lr (after encoding).
-        # Example with just numeric features:
-        X = np.array([[br, pdia]])
+        # Create a DataFrame with correct column names
+        input_df = pd.DataFrame([{
+            'Breathing_Rate': br,
+            'Particle_Diameter': pdia,
+            'Lung_Region': lr
+        }])
 
-        prediction = model.predict(X)
+        print(f"Input DataFrame:\n{input_df}")
+
+        # Make prediction
+        prediction = model.predict(input_df)
+
         return jsonify({'prediction': float(prediction[0])})
+
     except KeyError as e:
-        return jsonify({'error': f"Missing JSON key: {e.args[0]}"}), 400
+        return jsonify({'error': f"Missing key: {e.args[0]}"}), 400
+    except ValueError:
+        return jsonify({'error': 'Invalid input: numbers required'}), 400
     except Exception as e:
         print(f"Error during prediction: {e}")
-        return jsonify({'error': 'An error occurred during prediction.'}), 500
+        return jsonify({'error': 'Prediction failed'}), 500
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
-    app.run(debug=True, host='0.0.0.0', port=port)
+    app.run(debug=False, host='0.0.0.0', port=port)
