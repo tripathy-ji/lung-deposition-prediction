@@ -1,55 +1,46 @@
 from flask import Flask, request, jsonify, send_from_directory
-import joblib
-import pandas as pd
+from flask_cors import CORS
+import numpy as np
+import pickle
 import os
 
+# Initialize Flask app
 app = Flask(__name__, static_folder='frontend', static_url_path='')
 
+# Enable CORS (Allows frontend to call backend without browser blocking)
+CORS(app)
+
+# Load your trained model
+model_path = 'model.pkl'
 model = None
+if os.path.exists(model_path):
+    with open(model_path, 'rb') as f:
+        model = pickle.load(f)
+    print("Model loaded successfully.")
+else:
+    print("Model file not found. Please check the path.")
 
-# Path to your model file inside models/
-model_path = os.path.join('models', 'deposition_model.joblib')
-
-# Load model at startup
-with app.app_context():
-    if os.path.exists(model_path):
-        model = joblib.load(model_path)
-        print("Model loaded successfully.")
-    else:
-        print(f"Model file not found at {model_path}")
-
+# Serve your frontend (index.html)
 @app.route('/')
-def index():
+def serve_index():
     return send_from_directory(app.static_folder, 'index.html')
 
-@app.route('/<path:path>')
-def static_files(path):
-    return send_from_directory(app.static_folder, path)
-
+# Prediction endpoint
 @app.route('/predict', methods=['POST'])
 def predict():
-    global model
-    if model is None:
-        return jsonify({'error': 'Model not loaded'}), 500
-
-    data = request.json
     try:
-        br = float(data['breathingRate'])
-        pdia = float(data['particleDiameter'])
-        lr = data['lungRegion']
+        data = request.json
+        particle_size = float(data.get('particle_size', 0))
 
-        features = pd.DataFrame([{
-            "Breathing_Rate": br,
-            "Particle_Diameter": pdia,
-            "Lung_Region": lr
-        }])
+        if model is None:
+            return jsonify({'error': 'Model not loaded.'}), 500
 
-        prediction = model.predict(features)[0]
-        return jsonify({'prediction': prediction})
-    
+        prediction = model.predict(np.array([[particle_size]]))
+        return jsonify({'prediction': float(prediction[0])})
     except Exception as e:
-        return jsonify({'error': str(e)}), 400
+        print(f"Error during prediction: {e}")
+        return jsonify({'error': 'An error occurred during prediction.'}), 500
 
+# Run the app locally (Not required on Render, but useful for testing)
 if __name__ == '__main__':
-    port = int(os.environ.get('PORT', 5000))  # Use PORT from environment if available
-    app.run(debug=True, host='0.0.0.0', port=port)
+    app.run(debug=True)
