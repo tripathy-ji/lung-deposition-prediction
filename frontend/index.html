@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Lung Flow Forecast AI</title>
+  <style>
+    :root {
+      --primary-color: #4da6ff;
+      --secondary-color: #007acc;
+      --accent-green: #3abf9f;
+      --accent-orange: #ff8c42;
+      --accent-purple: #8f65d9;
+      --accent-pink: #d97ca5;
+      --input-bg-light: #f5faff;
+      --input-bg-dark: #1f2933;
+      --text-color-light: #3a4a5d;
+      --text-color-dark: #a8d8ff;
+      --background-color-light: #f0f8ff;
+      --background-color-dark: #1b1f24;
+      --card-bg-light: #ffffff;
+      --card-bg-dark: rgba(255, 255, 255, 0.05);
+      --logo-gradient-light: linear-gradient(135deg, #ff8c42, #ffd580);
+      --logo-gradient-dark: linear-gradient(135deg, #4da6ff, #007acc);
+    }
+
+    [data-theme="light"] {
+      --background-color: var(--background-color-light);
+      --text-color: var(--text-color-light);
+      --card-bg: var(--card-bg-light);
+      --input-bg: var(--input-bg-light);
+      --subheading-color: var(--accent-orange);
+      --logo-gradient: var(--logo-gradient-light);
+    }
+
+    [data-theme="dark"] {
+      --background-color: var(--background-color-dark);
+      --text-color: var(--text-color-dark);
+      --card-bg: var(--card-bg-dark);
+      --input-bg: var(--input-bg-dark);
+      --subheading-color: var(--accent-green);
+      --logo-gradient: var(--logo-gradient-dark);
+    }
+
+    body {
+      margin: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      background-color: var(--background-color);
+      color: var(--text-color);
+      font-family: "Times New Roman", Times, serif;
+      transition: background-color 0.3s, color 0.3s;
+      overflow-x: hidden;
+    }
+
+    #root {
+      max-width: 500px;
+      width: 90%;
+      padding: 2rem;
+      text-align: center;
+      position: relative;
+    }
+
+    .decor-left, .decor-right, .decor-bottom-left, .decor-bottom-right {
+      position: absolute;
+      font-size: 2rem;
+    }
+
+    .decor-left { left: -2rem; top: 2rem; }
+    .decor-right { right: -2rem; top: 2rem; }
+    .decor-bottom-left { left: -1rem; bottom: 1rem; }
+    .decor-bottom-right { right: -1rem; bottom: 1rem; }
+
+    .logo {
+      height: 3em;
+      width: 3em;
+      padding: 0.3em;
+      background: var(--logo-gradient);
+      border-radius: 50%;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2em;
+      color: white;
+      text-decoration: none;
+      margin-bottom: 1em;
+      box-shadow: 0 0 10px var(--primary-color);
+      transition: background 0.3s;
+    }
+
+    h1 {
+      color: var(--secondary-color);
+      font-size: 1.8em;
+    }
+
+    .subheading {
+      color: var(--subheading-color);
+      font-size: 1.1em;
+      margin-top: 0.5em;
+      margin-bottom: 1em;
+    }
+
+    .predict-title {
+      color: var(--primary-color);
+      margin-bottom: 1em;
+    }
+
+    .theme-toggle {
+      position: absolute;
+      top: 1rem;
+      right: 1rem;
+      background: none;
+      border: none;
+      font-size: 1.5em;
+      cursor: pointer;
+      color: var(--text-color);
+    }
+
+    .card {
+      padding: 2em;
+      background: var(--card-bg);
+      border-radius: 12px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+      margin-top: 2em;
+    }
+
+    .form-group {
+      margin-bottom: 1.5em;
+      text-align: left;
+    }
+
+    .form-group label {
+      display: block;
+      margin-bottom: 0.5em;
+      font-weight: bold;
+      color: var(--accent-purple);
+    }
+
+    .form-group select,
+    .form-group input {
+      width: 100%;
+      padding: 0.75em;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+      font-size: 1em;
+      background-color: var(--input-bg);
+      color: var(--text-color);
+    }
+
+    .predict-btn {
+      width: 100%;
+      padding: 1em;
+      font-size: 1.1em;
+      font-weight: bold;
+      background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+      border: none;
+      border-radius: 6px;
+      color: white;
+      cursor: pointer;
+      transition: background 0.3s, transform 0.2s;
+    }
+
+    .predict-btn:hover {
+      transform: translateY(-2px);
+    }
+
+    .result-section {
+      margin-top: 1.5em;
+      padding: 1em;
+      background: rgba(100, 108, 255, 0.1);
+      border-radius: 10px;
+      display: none;
+      color: var(--accent-pink);
+    }
+
+    .result-section.show {
+      display: block;
+    }
+
+    .result-value {
+      font-size: 2em;
+      font-weight: bold;
+      color: var(--accent-green);
+    }
+
+    .error-message {
+      color: #ff4d4d;
+      padding: 0.75em;
+      border-radius: 6px;
+      margin-top: 1em;
+      display: none;
+    }
+
+    .error-message.show {
+      display: block;
+    }
+
+    /* Responsive Tweaks for Mobile */
+    @media (max-width: 480px) {
+      .logo {
+        height: 2.5em;
+        width: 2.5em;
+        font-size: 1.7em;
+      }
+
+      h1 {
+        font-size: 1.5em;
+      }
+
+      .subheading {
+        font-size: 1em;
+      }
+
+      .predict-title {
+        font-size: 1.2em;
+      }
+
+      .form-group label {
+        font-size: 0.95em;
+      }
+
+      .predict-btn {
+        font-size: 1em;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <button class="theme-toggle" id="themeToggle">🌙</button>
+  <div id="root">
+    <div class="decor-left">🤧</div>
+    <div class="decor-right">🏥</div>
+    <div class="decor-bottom-left">💉</div>
+    <div class="decor-bottom-right">🫁</div>
+
+    <div class="logo">🫁</div>
+    <h1>Lung Flow Forecast AI</h1>
+    <p class="subheading">Advanced AI-powered lung flow prediction system for respiratory analysis</p>
+
+    <div class="card">
+      <h2 class="predict-title">Predict Lung Flow Parameters</h2>
+      <form id="predictionForm">
+        <div class="form-group">
+          <label for="breathingRate">Breathing Rate (L/min)</label>
+          <select id="breathingRate" required>
+            <option value="">Select breathing rate...</option>
+            <option value="15">15</option>
+            <option value="30">30</option>
+            <option value="60">60</option>
+            <option value="90">90</option>
+            <option value="120">120</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="particleDiameter">Particle Diameter (μm)</label>
+          <input type="number" id="particleDiameter" step="0.01" min="0.01" required />
+        </div>
+
+        <div class="form-group">
+          <label for="lungRegion">Lung Region</label>
+          <select id="lungRegion" required>
+            <option value="">Select lung region...</option>
+            <option value="Upper Airways">Upper Airways</option>
+            <option value="Whole Lung">Whole Lung</option>
+            <option value="Bronchus">Bronchus</option>
+            <option value="Oropharynx">Oropharynx</option>
+            <option value="Trachea">Trachea</option>
+            <option value="Right Lung">Right Lung</option>
+            <option value="Left Lung">Left Lung</option>
+            <option value="Large Airways">Large Airways</option>
+            <option value="Small Airways">Small Airways</option>
+            <option value="Tracheobronchial Tree">Tracheobronchial Tree</option>
+          </select>
+        </div>
+
+        <button type="submit" class="predict-btn">Predict</button>
+      </form>
+
+      <div class="result-section" id="resultSection">
+        <h3>Prediction Result</h3>
+        <div class="result-value" id="resultValue"></div>
+        <p>Predicted lung flow based on provided parameters</p>
+      </div>
+
+      <div class="error-message" id="errorMessage"></div>
+    </div>
+  </div>
+
+  <script>
+    const themeToggle = document.getElementById("themeToggle");
+    const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+    document.documentElement.setAttribute("data-theme", prefersDark ? "dark" : "light");
+    themeToggle.textContent = prefersDark ? "🌙" : "☀️";
+
+    themeToggle.addEventListener("click", () => {
+      const currentTheme = document.documentElement.getAttribute("data-theme");
+      const newTheme = currentTheme === "dark" ? "light" : "dark";
+      document.documentElement.setAttribute("data-theme", newTheme);
+      themeToggle.textContent = newTheme === "dark" ? "🌙" : "☀️";
+    });
+
+    document.getElementById("predictionForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const resultSection = document.getElementById("resultSection");
+      const resultValue = document.getElementById("resultValue");
+      const errorMessage = document.getElementById("errorMessage");
+      const predictBtn = document.querySelector(".predict-btn");
+
+      const formData = {
+        breathingRate: document.getElementById("breathingRate").value,
+        particleDiameter: parseFloat(document.getElementById("particleDiameter").value),
+        lungRegion: document.getElementById("lungRegion").value
+      };
+
+      if (!formData.breathingRate || !formData.particleDiameter || !formData.lungRegion) {
+        errorMessage.textContent = "Please fill in all fields.";
+        errorMessage.classList.add("show");
+        resultSection.classList.remove("show");
+        return;
+      }
+
+      predictBtn.disabled = true;
+      predictBtn.textContent = "Predicting...";
+      errorMessage.classList.remove("show");
+      resultSection.classList.remove("show");
+
+      try {
+        const response = await fetch("http://127.0.0.1:5000/predict", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(formData),
+        });
+
+        if (!response.ok) throw new Error("Network error");
+
+        const data = await response.json();
+
+        if (data.prediction !== undefined) {
+          resultValue.textContent = data.prediction.toFixed(2) + "%";
+          resultSection.classList.add("show");
+        } else {
+          throw new Error("Unexpected response");
+        }
+      } catch (err) {
+        errorMessage.textContent = "Error occurred. Ensure backend is running.";
+        errorMessage.classList.add("show");
+      } finally {
+        predictBtn.disabled = false;
+        predictBtn.textContent = "Predict";
+      }
+    });
+  </script>
+</body>
+</html>
