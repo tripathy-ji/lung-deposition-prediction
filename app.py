@@ -10,7 +10,7 @@ model = None
 # Path to your model file inside models/
 model_path = os.path.join('models', 'deposition_model.joblib')
 
-# Load model at startup (Flask 3.x safe way)
+# Load model at startup
 with app.app_context():
     if os.path.exists(model_path):
         model = joblib.load(model_path)
@@ -51,4 +51,5 @@ def predict():
         return jsonify({'error': str(e)}), 400
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    port = int(os.environ.get('PORT', 5000))  # Use PORT from environment if available
+    app.run(debug=True, host='0.0.0.0', port=port)
