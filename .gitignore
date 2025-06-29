@@ -1,6 +1,18 @@
-venv/
+# Byte-compiled files
 __pycache__/
-*.pyc
-*.pkl
-*.joblib
+*.py[cod]
+
+# Environment folders
+venv/
+.env/
+
+# System files
 .DS_Store
+Thumbs.db
+
+# IDE config
+.vscode/
+.idea/
+
+# Log files
+*.log
