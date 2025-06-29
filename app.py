@@ -7,13 +7,16 @@ app = Flask(__name__, static_folder='frontend', static_url_path='')
 
 model = None
 
-# Load model at startup (works in Flask 3.x)
+# Path to your model file inside models/
+model_path = os.path.join('models', 'deposition_model.joblib')
+
+# Load model at startup (Flask 3.x safe way)
 with app.app_context():
-    if os.path.exists('deposition_model.joblib'):
-        model = joblib.load('deposition_model.joblib')
+    if os.path.exists(model_path):
+        model = joblib.load(model_path)
         print("Model loaded successfully.")
     else:
-        print("Model file missing!")
+        print(f"Model file not found at {model_path}")
 
 @app.route('/')
 def index():
@@ -30,18 +33,22 @@ def predict():
         return jsonify({'error': 'Model not loaded'}), 500
 
     data = request.json
-    br = float(data['breathingRate'])
-    pdia = float(data['particleDiameter'])
-    lr = data['lungRegion']
+    try:
+        br = float(data['breathingRate'])
+        pdia = float(data['particleDiameter'])
+        lr = data['lungRegion']
 
-    features = pd.DataFrame([{
-        "Breathing_Rate": br,
-        "Particle_Diameter": pdia,
-        "Lung_Region": lr
-    }])
+        features = pd.DataFrame([{
+            "Breathing_Rate": br,
+            "Particle_Diameter": pdia,
+            "Lung_Region": lr
+        }])
 
-    prediction = model.predict(features)[0]
-    return jsonify({'prediction': prediction})
+        prediction = model.predict(features)[0]
+        return jsonify({'prediction': prediction})
+    
+    except Exception as e:
+        return jsonify({'error': str(e)}), 400
 
 if __name__ == '__main__':
     app.run(debug=True)
