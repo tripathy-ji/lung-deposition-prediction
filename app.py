@@ -1,46 +1,48 @@
 from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 import numpy as np
-import pickle
+import joblib
 import os
 
 # Initialize Flask app
-app = Flask(__name__, static_folder='frontend', static_url_path='')
-
-# Enable CORS (Allows frontend to call backend without browser blocking)
+app = Flask(__name__, static_folder='.', static_url_path='')
 CORS(app)
 
 # Load your trained model
-model_path = 'model.pkl'
-model = None
-if os.path.exists(model_path):
-    with open(model_path, 'rb') as f:
-        model = pickle.load(f)
-    print("Model loaded successfully.")
-else:
-    print("Model file not found. Please check the path.")
+model_path = 'models/deposition_model.joblib'
+if not os.path.exists(model_path):
+    raise FileNotFoundError(f"Model file not found at '{model_path}'. Please place it inside the 'models' folder.")
+model = joblib.load(model_path)
+print("Model loaded successfully.")
 
 # Serve your frontend (index.html)
 @app.route('/')
 def serve_index():
-    return send_from_directory(app.static_folder, 'index.html')
+    return send_from_directory('.', 'index.html')
 
 # Prediction endpoint
 @app.route('/predict', methods=['POST'])
 def predict():
     try:
-        data = request.json
-        particle_size = float(data.get('particle_size', 0))
+        data = request.get_json(force=True)
+        # Expect the same keys your frontend sends:
+        br = float(data['breathingRate'])
+        pdia = float(data['particleDiameter'])
+        lr = data['lungRegion']
 
-        if model is None:
-            return jsonify({'error': 'Model not loaded.'}), 500
+        # Build features array for your model.
+        # If your model expects three columns, include lr (after encoding).
+        # Example with just numeric features:
+        X = np.array([[br, pdia]])
 
-        prediction = model.predict(np.array([[particle_size]]))
+        prediction = model.predict(X)
         return jsonify({'prediction': float(prediction[0])})
+    except KeyError as e:
+        return jsonify({'error': f"Missing JSON key: {e.args[0]}"}), 400
     except Exception as e:
         print(f"Error during prediction: {e}")
         return jsonify({'error': 'An error occurred during prediction.'}), 500
 
-# Run the app locally (Not required on Render, but useful for testing)
 if __name__ == '__main__':
-    app.run(debug=True)
+    port = int(os.environ.get('PORT', 5000))
+    app.run(debug=True, host='0.0.0.0', port=port)
