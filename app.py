@@ -7,9 +7,8 @@ app = Flask(__name__, static_folder='frontend', static_url_path='')
 
 model = None
 
-@app.before_first_request
-def load_model():
-    global model
+# Load model at startup (works in Flask 3.x)
+with app.app_context():
     if os.path.exists('deposition_model.joblib'):
         model = joblib.load('deposition_model.joblib')
         print("Model loaded successfully.")
